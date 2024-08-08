@@ -1,7 +1,23 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Table, Space, Button, Modal } from 'antd';
+import { Table, Space, Button, Modal, notification } from 'antd';
 import { getData } from './api';
 
+// Функция для воспроизведения звука
+const playNotificationSound = () => {
+  const audio = new Audio('src/Audio/2886.mp3');
+  audio.play();
+};
+
+// Функция для показа уведомления
+const showNotification = (message, description) => {
+  notification.info({
+    message: message,
+    description: description,
+    placement: 'topRight',
+  });
+};
+
+// Определение колонок таблицы
 const columns = (showDetails) => [
   {
     title: 'invest token',
@@ -10,6 +26,22 @@ const columns = (showDetails) => [
     render: (invest_token, record) => (
       <p>
         {invest_token.symbol}, {record.invest_amount_in_token}
+      </p>
+    ),
+  },
+  {
+    title: 'chain',
+    dataIndex: 'logs',
+    key: 'chain', 
+    render: (logs) => (
+      <p>
+        {logs.map((log, index) => (
+          log.chain ? (
+            <span key={index}>
+              {log.chain.name}<br/>
+            </span>
+          ) : null
+        ))}
       </p>
     ),
   },
@@ -31,8 +63,8 @@ const columns = (showDetails) => [
   
       return (
         <p>
-          🟢 Buy {logs[0].action === "Buy" ? logs[0].token_out.symbol : logs[0].token_in.symbol} on {lastElement.platform}<br/>
-          🔴 Sell {lastElement.action === "Buy" ? lastElement.token_out.symbol : lastElement.token_in.symbol} on {logs[0].platform}<br/>
+          🟢 Buy {logs[0].action === "Buy" ? logs[0].token_out.symbol : logs[0].token_in.symbol} on {logs[0].platform}<br/>
+          🔴 Sell {lastElement.action === "Buy" ? lastElement.token_out.symbol : lastElement.token_in.symbol} on {lastElement.platform}<br/>
         </p>
       );
     }
@@ -87,6 +119,15 @@ const AppTable = () => {
     try {
       const result = await getData();
       console.log('Fetched data:', result);
+
+      // Проверяем значения profit и показываем уведомления, если значение больше нуля
+      result.forEach(record => {
+        if (record.profit > 0) {
+          showNotification('Profit Alert', `Profit for record ${record.uuid} is greater than zero.`);
+          playNotificationSound();
+        }
+      });
+
       setData(result);
     } catch (error) {
       setError('Failed to fetch data');
@@ -101,10 +142,8 @@ const AppTable = () => {
       fetchData(); 
       intervalRef.current = setInterval(fetchData, 1000); 
 
-      
       return () => clearInterval(intervalRef.current);
     } else {
-    
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
@@ -143,6 +182,7 @@ const AppTable = () => {
         {selectedRecord && (
           <>
             <div>
+              <p><strong>uuid</strong> {selectedRecord.uuid}</p>
               <p><strong>Invest Amount:</strong> {selectedRecord.invest_amount}</p>
               <p><strong>Invest Token Name:</strong> {selectedRecord.invest_token.name}</p>
               <p><strong>Invest Token Symbol:</strong> {selectedRecord.invest_token.symbol}</p>
@@ -154,6 +194,7 @@ const AppTable = () => {
                     <li>{log.platform}</li>
                     <li>{log.amount_in} {log.token_in.symbol}</li>
                     <li>{log.amount_out} {log.token_out.symbol}</li>
+                    ---------------------------------
                   </div>
                 ))}
               </ul>
