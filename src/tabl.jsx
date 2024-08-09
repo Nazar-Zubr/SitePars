@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Table, Space, Button, Modal, notification } from 'antd';
 import { getData } from './api';
 
-// Функция для воспроизведения звука
 const playNotificationSound = () => {
   const audio = new Audio('src/Audio/2886.mp3');
   audio.play();
@@ -32,7 +31,7 @@ const columns = (showDetails) => [
   {
     title: 'chain',
     dataIndex: 'logs',
-    key: 'chain', 
+    key: 'chain',
     render: (logs) => (
       <p>
         {logs.map((log, index) => (
@@ -45,9 +44,9 @@ const columns = (showDetails) => [
       </p>
     ),
   },
-  { 
+  {
     title: 'Invest USD',
-    dataIndex: 'invest_amount', 
+    dataIndex: 'invest_amount',
     key: 'Invest'
   },
   {
@@ -58,9 +57,9 @@ const columns = (showDetails) => [
       if (!logs || logs.length === 0) {
         return <p>No logs available</p>;
       }
-  
+
       const lastElement = logs.at(-1);
-  
+
       return (
         <p>
           🟢 Buy {logs[0].action === "Buy" ? logs[0].token_out.symbol : logs[0].token_in.symbol} on {logs[0].platform}<br/>
@@ -88,7 +87,7 @@ const columns = (showDetails) => [
     title: 'Profit',
     dataIndex: 'profit',
     key: 'profit',
-    sorter: (a, b) => b.profit - a.profit, 
+    sorter: (a, b) => b.profit - a.profit,
     render: (profit) => (
       <span style={{ color: profit < 0 ? 'red' : 'green' }}>
         {profit}
@@ -112,19 +111,26 @@ const AppTable = () => {
   const [error, setError] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState(null);
-  const [isUpdating, setIsUpdating] = useState(true); 
-  const intervalRef = useRef(null); 
+  const [isUpdating, setIsUpdating] = useState(true);
+  const intervalRef = useRef(null);
+  const notifiedRecords = useRef(new Set());
 
   const fetchData = async () => {
     try {
       const result = await getData();
       console.log('Fetched data:', result);
 
-      // Проверяем значения profit и показываем уведомления, если значение больше нуля
       result.forEach(record => {
-        if (record.profit > 0) {
+        const isProfitable = record.profit > 0;
+        const isAlreadyNotified = notifiedRecords.current.has(record.uuid);
+
+        if (isProfitable && !isAlreadyNotified) {
           showNotification('Profit Alert', `Profit for record ${record.uuid} is greater than zero.`);
           playNotificationSound();
+          notifiedRecords.current.add(record.uuid);
+        } else if (!isProfitable && isAlreadyNotified) {
+          // Удалить из списка уведомлений, если профит стал отрицательным или нулевым
+          notifiedRecords.current.delete(record.uuid);
         }
       });
 
@@ -139,8 +145,8 @@ const AppTable = () => {
 
   useEffect(() => {
     if (isUpdating) {
-      fetchData(); 
-      intervalRef.current = setInterval(fetchData, 1000); 
+      fetchData();
+      intervalRef.current = setInterval(fetchData, 1000);
 
       return () => clearInterval(intervalRef.current);
     } else {
@@ -161,7 +167,7 @@ const AppTable = () => {
   };
 
   const toggleUpdating = () => {
-    setIsUpdating(prev => !prev); 
+    setIsUpdating(prev => !prev);
   };
 
   if (loading) return <p>Loading...</p>;
