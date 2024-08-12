@@ -125,7 +125,7 @@ const AppTable = () => {
         const isAlreadyNotified = notifiedRecords.current.has(record.uuid);
 
         if (isProfitable && !isAlreadyNotified) {
-          showNotification('Profit Alert', `Profit for record ${record.uuid} is greater than zero.`);
+          // showNotification('Profit Alert', `Profit for record ${record.uuid} is greater than zero.`);
           playNotificationSound();
           notifiedRecords.current.add(record.uuid);
         } else if (!isProfitable && isAlreadyNotified) {
@@ -175,7 +175,7 @@ const AppTable = () => {
 
   return (
     <>
-      <Button onClick={toggleUpdating} style={{ marginBottom: '16px' }}>
+      <Button onClick={toggleUpdating} style={{ marginBottom: '10px' }}>
         {isUpdating ? 'Stop Updates' : 'Start Updates'}
       </Button>
       <Table style={appStyle} columns={columns(showDetails)} dataSource={data} rowKey="uuid" />
